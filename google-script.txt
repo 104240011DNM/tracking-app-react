@@ -1,0 +1,117 @@
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCJ52apOU_t67SyJSzturV_5XjW_PooI20",
+  projectId: "run-plan-tracking",
+  databaseURL: "https://run-plan-tracking-default-rtdb.firebaseio.com"
+};
+
+// The user ID mapping - add all your users here
+const USER_MAPPING = {
+  "OnePlus13Thing": "123456_gmail_com" // e.g., john_doe_gmail_com
+};
+
+function doPost(e) {
+  try {
+    // Parse the incoming JSON from Arduino IoT Cloud
+    const payload = JSON.parse(e.postData.contents);
+    
+    // Log the incoming data for debugging
+    console.log("Received data:", JSON.stringify(payload));
+    
+    // Extract the thing ID from the payload
+    const thingId = payload.id || "OnePlus13Thing"; // Default or extract from payload
+    
+    // Get the safe user ID from our mapping
+    const safeUserId = USER_MAPPING[thingId];
+    
+    if (!safeUserId) {
+      console.error("No user mapping found for thing ID:", thingId);
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        error: "Unknown thing ID"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Format the data for Firebase
+    const sensorData = {
+      timestamp: Date.now(),
+      acceleration: {
+        x: getValueFromPayload(payload, "Accelerometer_X") || 0,
+        y: getValueFromPayload(payload, "Accelerometer_Y") || 0,
+        z: getValueFromPayload(payload, "Accelerometer_Z") || 0
+      },
+      gps: {
+        lat: getGpsValue(payload, "lat") || 0,
+        lng: getGpsValue(payload, "lon") || 0
+      },
+      speed: 0 // Arduino IoT Cloud doesn't provide speed directly
+    };
+    
+    // Send data to Firebase
+    const result = sendToFirebase(safeUserId, sensorData);
+    
+    // Return success response
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: "Data forwarded to Firebase",
+      timestamp: Date.now()
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    console.error("Error processing webhook:", error);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// Helper function to extract values from Arduino IoT Cloud payload
+function getValueFromPayload(payload, variableName) {
+  if (!payload || !payload.values) return null;
+  
+  const variable = payload.values.find(v => v.name === variableName);
+  return variable ? variable.value : null;
+}
+
+// Helper function to extract GPS values
+function getGpsValue(payload, coordinate) {
+  if (!payload || !payload.values) return null;
+  
+  const gpsVariable = payload.values.find(v => v.name === "Gps");
+  if (!gpsVariable || !gpsVariable.value) return null;
+  
+  try {
+    // GPS values might be in string format like {"lat":"11.108","lon":"106.612"}
+    if (typeof gpsVariable.value === 'string') {
+      const gpsObject = JSON.parse(gpsVariable.value);
+      return gpsObject[coordinate];
+    }
+    
+    // Or they might be in object format
+    return gpsVariable.value[coordinate];
+  } catch (e) {
+    console.error("Error parsing GPS data:", e);
+    return null;
+  }
+}
+
+// Send data to Firebase using REST API
+function sendToFirebase(userId, data) {
+  const url = `${firebaseConfig.databaseURL}/sensors/${userId}.json`;
+  
+  const options = {
+    method: 'put',
+    contentType: 'application/json',
+    payload: JSON.stringify(data)
+  };
+  
+  try {
+    const response = UrlFetchApp.fetch(url, options);
+    console.log("Firebase response:", response.getContentText());
+    return JSON.parse(response.getContentText());
+  } catch (error) {
+    console.error("Firebase error:", error);
+    throw error;
+  }
+}
