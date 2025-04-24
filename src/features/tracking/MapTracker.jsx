@@ -6,6 +6,20 @@ import TodayInfo from "../component/TodayInfo";
 import { listenSensorData } from "../../firebase/sensorService";
 import useAuthListener from "../../hooks/useAuthListener"; // Import hook to get current user
 import { getUserProfile } from "../../firebase/userService"; // Import to fetch safeUserId
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+// Fix leaflet's default icon path issues with Vite/Webpack/Vercel
+delete L.Icon.Default.prototype._getIconUrl;
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
 
 function UpdateMapCenter({ center }) {
   const map = useMap();
