@@ -1,0 +1,33 @@
+src/
+│
+├── features/
+│   ├── components/
+│   │	├── SigninForm.js
+│   │	├── SignupForm.js
+│   │	├── Logout.js
+│   │	└── SensorMonitor.jsx
+│   ├── tracking/
+│   │   |── MapTracker.jsx
+|   |   └── useRecentRuns.js
+│   └── runplan/
+│       ├── PlanGenerator.jsx
+│	├── PlanViewer.jsx
+│       └── generatePlan.js
+│
+├── firebase/
+│   ├── firebaseConfig.js
+│   ├── authService.js
+│   ├── userService.js
+│   ├── trackService.js
+│   └── sensorService.js
+│
+├── hooks/
+│   └── useAuthListener.js
+│
+├── utils/
+│   └── geoUtils.js
+│
+├── App.jsx
+├── main.jsx
+├── App.css
+└── index.css
