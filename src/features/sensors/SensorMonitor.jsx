@@ -18,11 +18,13 @@ export default function SensorMonitor({ userId }) {
   useEffect(() => {
     if (!safeUserId) return;
 
+    let lastTimestamp = null;
+    let currentSpeed = 0;
+
     // 👂 Lắng nghe sensor data từ realtime DB
     const unsubscribe = listenSensorData(safeUserId, (data) => {
       const normalized = {
         timestamp: data.timestamp,
-        speed: data.speed ?? null,
         acceleration: data.acceleration ?? {
           x: data.x ?? null,
           y: data.y ?? null,
@@ -33,7 +35,26 @@ export default function SensorMonitor({ userId }) {
           lng: data.lng ?? null
         }
       };
-      setSensorData(normalized);
+
+      // Calculate speed using linear acceleration
+      if (normalized.acceleration && lastTimestamp) {
+        const deltaTime = (normalized.timestamp - lastTimestamp) / 1000; // Convert ms to seconds
+        const linearAcceleration = Math.sqrt(
+          Math.pow(normalized.acceleration.x ?? 0, 2) +
+          Math.pow(normalized.acceleration.y ?? 0, 2) +
+          Math.pow(normalized.acceleration.z ?? 0, 2)
+        )*0.1;
+
+        currentSpeed = linearAcceleration * deltaTime; // Integrate acceleration to calculate speed
+        currentSpeed = Math.max(0, currentSpeed); // Ensure speed is non-negative
+      }
+
+      lastTimestamp = normalized.timestamp;
+
+      setSensorData({
+        ...normalized,
+        speed: currentSpeed.toFixed(2) // Add calculated speed
+      });
     });
 
     return () => unsubscribe && unsubscribe();

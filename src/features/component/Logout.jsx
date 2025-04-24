@@ -1,11 +1,17 @@
 import { logoutUser } from '../../firebase/authService';
-import { Link } from 'react-router-dom';
+import { useNavigate } from "react-router-dom"
 
 export default function LogoutButton() {
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await logoutUser()
+    navigate("/") // Redirect to signin page
+  }
+
   return (
     <div>
-      <button onClick={logoutUser}>Đăng xuất</button>
-      <Link to="/signin"></Link>
+      <button onClick={handleLogout}>Đăng xuất</button>
     </div>
   );
 }
